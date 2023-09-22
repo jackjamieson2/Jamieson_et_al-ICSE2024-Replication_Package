@@ -1,0 +1,381 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  [PROJECT ROOT DIRECTORY FOLDER]/xtunitroot_results/xtunitroot_pperron.log
+  log type:  text
+ opened on:   5 Jul 2023, 12:00:22
+
+. 
+. * load the data file
+
+. cd "`input_path'"
+[PROJECT ROOT DIRECTORY FOLDER]/data
+
+. use "project-level-data.dta", clear
+
+. 
+. 
+. 
+. * Define independent variables for analysis
+
+. local indepvars   p_respect_iss p_freedom_iss  p_broad_iss   p_equity_iss p_power_iss p_enviro_iss
+
+. 
+. * Define unit_id and xtset for time series analysis
+
+. encode project, gen(unit_id)   
+
+. isid unit_id month
+
+. xtset unit_id month
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+
+. * Fill in gaps in the time series
+
+. tsfill
+
+. 
+. 
+. 
+. 
+. * Test turnover type
+
+. foreach time_group in "p_in_all" "p_out_a0_1" "p_out_a2_3" "p_out_a4_8" "p_out_a9up" {
+  2. * Fill in gaps - Set gaps in the data to 0
+. replace `time_group' = 0 if `time_group'  == .
+  3. 
+. di "Variable == `time_group'"
+  4. di "-------------------"
+  5. xtunitroot fisher `time_group' , pperron lags(4)
+  6. di "inverse chi-squared: `r(P)' , p = `r(p_P)'"
+  7. di "inverse normal Z: `r(Z)' + , p = `r(p_Z)'"
+  8. } 
+(397 real changes made)
+Variable == p_in_all
+-------------------
+
+Fisher-type unit-root test for p_in_all
+Based on Phillips–Perron tests
+---------------------------------------
+H0: All panels contain unit roots           Number of panels       =     52
+Ha: At least one panel is stationary        Avg. number of periods =  61.04
+
+AR parameter:    Panel-specific             Asymptotics: T -> Infinity
+Panel means:     Included
+Time trend:      Not included
+Newey–West lags: 4 lags
+------------------------------------------------------------------------------
+                                  Statistic      p-value
+------------------------------------------------------------------------------
+ Inverse chi-squared(104)  P      2094.4726       0.0000
+ Inverse normal            Z       -41.5569       0.0000
+ Inverse logit t(264)      L*      -80.2196       0.0000
+ Modified inv. chi-squared Pm      138.0144       0.0000
+------------------------------------------------------------------------------
+ P statistic requires number of panels to be finite.
+ Other statistics are suitable for finite or infinite number of panels.
+------------------------------------------------------------------------------
+inverse chi-squared: 2094.472570881403 , p = 0
+inverse normal Z: -41.55688163971433 + , p = 0
+(1,112 real changes made)
+Variable == p_out_a0_1
+-------------------
+
+Fisher-type unit-root test for p_out_a0_1
+Based on Phillips–Perron tests
+-----------------------------------------
+H0: All panels contain unit roots           Number of panels       =     52
+Ha: At least one panel is stationary        Avg. number of periods =  61.04
+
+AR parameter:    Panel-specific             Asymptotics: T -> Infinity
+Panel means:     Included
+Time trend:      Not included
+Newey–West lags: 4 lags
+------------------------------------------------------------------------------
+                                  Statistic      p-value
+------------------------------------------------------------------------------
+ Inverse chi-squared(104)  P      2054.8801       0.0000
+ Inverse normal            Z       -41.2157       0.0000
+ Inverse logit t(244)      L*      -81.9223       0.0000
+ Modified inv. chi-squared Pm      135.2692       0.0000
+------------------------------------------------------------------------------
+ P statistic requires number of panels to be finite.
+ Other statistics are suitable for finite or infinite number of panels.
+------------------------------------------------------------------------------
+inverse chi-squared: 2054.88014376609 , p = 0
+inverse normal Z: -41.21570971599311 + , p = 0
+(1,564 real changes made)
+Variable == p_out_a2_3
+-------------------
+
+Fisher-type unit-root test for p_out_a2_3
+Based on Phillips–Perron tests
+-----------------------------------------
+H0: All panels contain unit roots           Number of panels       =     52
+Ha: At least one panel is stationary        Avg. number of periods =  61.04
+
+AR parameter:    Panel-specific             Asymptotics: T -> Infinity
+Panel means:     Included
+Time trend:      Not included
+Newey–West lags: 4 lags
+------------------------------------------------------------------------------
+                                  Statistic      p-value
+------------------------------------------------------------------------------
+ Inverse chi-squared(104)  P      2128.6997       0.0000
+ Inverse normal            Z       -41.9020       0.0000
+ Inverse logit t(249)      L*      -83.9955       0.0000
+ Modified inv. chi-squared Pm      140.3877       0.0000
+------------------------------------------------------------------------------
+ P statistic requires number of panels to be finite.
+ Other statistics are suitable for finite or infinite number of panels.
+------------------------------------------------------------------------------
+inverse chi-squared: 2128.69971915309 , p = 0
+inverse normal Z: -41.90198982662705 + , p = 0
+(1,456 real changes made)
+Variable == p_out_a4_8
+-------------------
+
+Fisher-type unit-root test for p_out_a4_8
+Based on Phillips–Perron tests
+-----------------------------------------
+H0: All panels contain unit roots           Number of panels       =     52
+Ha: At least one panel is stationary        Avg. number of periods =  61.04
+
+AR parameter:    Panel-specific             Asymptotics: T -> Infinity
+Panel means:     Included
+Time trend:      Not included
+Newey–West lags: 4 lags
+------------------------------------------------------------------------------
+                                  Statistic      p-value
+------------------------------------------------------------------------------
+ Inverse chi-squared(104)  P      2086.4387       0.0000
+ Inverse normal            Z       -41.6437       0.0000
+ Inverse logit t(229)      L*      -85.9184       0.0000
+ Modified inv. chi-squared Pm      137.4574       0.0000
+------------------------------------------------------------------------------
+ P statistic requires number of panels to be finite.
+ Other statistics are suitable for finite or infinite number of panels.
+------------------------------------------------------------------------------
+inverse chi-squared: 2086.438703789021 , p = 0
+inverse normal Z: -41.64372251313135 + , p = 0
+(794 real changes made)
+Variable == p_out_a9up
+-------------------
+
+Fisher-type unit-root test for p_out_a9up
+Based on Phillips–Perron tests
+-----------------------------------------
+H0: All panels contain unit roots           Number of panels       =     52
+Ha: At least one panel is stationary        Avg. number of periods =  61.04
+
+AR parameter:    Panel-specific             Asymptotics: T -> Infinity
+Panel means:     Included
+Time trend:      Not included
+Newey–West lags: 4 lags
+------------------------------------------------------------------------------
+                                  Statistic      p-value
+------------------------------------------------------------------------------
+ Inverse chi-squared(104)  P      1884.3943       0.0000
+ Inverse normal            Z       -39.3585       0.0000
+ Inverse logit t(214)      L*      -80.2699       0.0000
+ Modified inv. chi-squared Pm      123.4481       0.0000
+------------------------------------------------------------------------------
+ P statistic requires number of panels to be finite.
+ Other statistics are suitable for finite or infinite number of panels.
+------------------------------------------------------------------------------
+inverse chi-squared: 1884.394281569687 , p = 0
+inverse normal Z: -39.35845365975231 + , p = 0
+
+. * end foreach time_group
+
+. 
+. 
+. 
+. 
+. 
+. * Test each independent variable
+
+. foreach indepvar in `indepvars' {
+  2. * Fill in gaps - Set gaps in the data to 0
+. replace `indepvar' = 0 if `indepvar'  == .
+  3. di "Variable == `indepvar'"
+  4. di "-------------------"
+  5. xtunitroot fisher `indepvar', pperron lags(4)
+  6. 
+. 
+. di "inverse chi-squared: `r(P)' , p = `r(p_P)'"
+  7. di "inverse normal Z: `r(Z)' + , p = `r(p_Z)'"
+  8. } 
+(734 real changes made)
+Variable == p_respect_iss
+-------------------
+
+Fisher-type unit-root test for p_respect_iss
+Based on Phillips–Perron tests
+--------------------------------------------
+H0: All panels contain unit roots           Number of panels       =     52
+Ha: At least one panel is stationary        Avg. number of periods =  61.04
+
+AR parameter:    Panel-specific             Asymptotics: T -> Infinity
+Panel means:     Included
+Time trend:      Not included
+Newey–West lags: 4 lags
+------------------------------------------------------------------------------
+                                  Statistic      p-value
+------------------------------------------------------------------------------
+ Inverse chi-squared(104)  P      1237.1219       0.0000
+ Inverse normal            Z       -32.4276       0.0000
+ Inverse logit t(129)      L*      -68.4710       0.0000
+ Modified inv. chi-squared Pm       78.5679       0.0000
+------------------------------------------------------------------------------
+ P statistic requires number of panels to be finite.
+ Other statistics are suitable for finite or infinite number of panels.
+------------------------------------------------------------------------------
+inverse chi-squared: 1237.121914580244 , p = 3.7115362633e-193
+inverse normal Z: -32.42764289360724 + , p = 5.5970863687e-231
+(734 real changes made)
+Variable == p_freedom_iss
+-------------------
+
+Fisher-type unit-root test for p_freedom_iss
+Based on Phillips–Perron tests
+--------------------------------------------
+H0: All panels contain unit roots           Number of panels       =     52
+Ha: At least one panel is stationary        Avg. number of periods =  61.04
+
+AR parameter:    Panel-specific             Asymptotics: T -> Infinity
+Panel means:     Included
+Time trend:      Not included
+Newey–West lags: 4 lags
+------------------------------------------------------------------------------
+                                  Statistic      p-value
+------------------------------------------------------------------------------
+ Inverse chi-squared(104)  P      1566.6252       0.0000
+ Inverse normal            Z       -36.4609       0.0000
+ Inverse logit t(169)      L*      -75.4023       0.0000
+ Modified inv. chi-squared Pm      101.4148       0.0000
+------------------------------------------------------------------------------
+ P statistic requires number of panels to be finite.
+ Other statistics are suitable for finite or infinite number of panels.
+------------------------------------------------------------------------------
+inverse chi-squared: 1566.625244288866 , p = 1.7413831443e-259
+inverse normal Z: -36.46085950244645 + , p = 2.3145043102e-291
+(734 real changes made)
+Variable == p_broad_iss
+-------------------
+
+Fisher-type unit-root test for p_broad_iss
+Based on Phillips–Perron tests
+------------------------------------------
+H0: All panels contain unit roots           Number of panels       =     52
+Ha: At least one panel is stationary        Avg. number of periods =  61.04
+
+AR parameter:    Panel-specific             Asymptotics: T -> Infinity
+Panel means:     Included
+Time trend:      Not included
+Newey–West lags: 4 lags
+------------------------------------------------------------------------------
+                                  Statistic      p-value
+------------------------------------------------------------------------------
+ Inverse chi-squared(104)  P      1187.1053       0.0000
+ Inverse normal            Z       -32.0755       0.0000
+ Inverse logit t(119)      L*      -68.5257       0.0000
+ Modified inv. chi-squared Pm       75.0998       0.0000
+------------------------------------------------------------------------------
+ P statistic requires number of panels to be finite.
+ Other statistics are suitable for finite or infinite number of panels.
+------------------------------------------------------------------------------
+inverse chi-squared: 1187.105329800006 , p = 3.2966474694e-183
+inverse normal Z: -32.07545026593316 + , p = 4.8499918810e-226
+(734 real changes made)
+Variable == p_equity_iss
+-------------------
+
+Fisher-type unit-root test for p_equity_iss
+Based on Phillips–Perron tests
+-------------------------------------------
+H0: All panels contain unit roots           Number of panels       =     52
+Ha: At least one panel is stationary        Avg. number of periods =  61.04
+
+AR parameter:    Panel-specific             Asymptotics: T -> Infinity
+Panel means:     Included
+Time trend:      Not included
+Newey–West lags: 4 lags
+------------------------------------------------------------------------------
+                                  Statistic      p-value
+------------------------------------------------------------------------------
+ Inverse chi-squared(104)  P       864.2197       0.0000
+ Inverse normal            Z       -27.4178       0.0000
+ Inverse logit t(84)       L*      -59.9205       0.0000
+ Modified inv. chi-squared Pm       52.7118       0.0000
+------------------------------------------------------------------------------
+ P statistic requires number of panels to be finite.
+ Other statistics are suitable for finite or infinite number of panels.
+------------------------------------------------------------------------------
+inverse chi-squared: 864.2197355871019 , p = 4.1316126953e-120
+inverse normal Z: -27.4178195292084 + , p = 8.4085918996e-166
+(734 real changes made)
+Variable == p_power_iss
+-------------------
+
+Fisher-type unit-root test for p_power_iss
+Based on Phillips–Perron tests
+------------------------------------------
+H0: All panels contain unit roots           Number of panels       =     52
+Ha: At least one panel is stationary        Avg. number of periods =  61.04
+
+AR parameter:    Panel-specific             Asymptotics: T -> Infinity
+Panel means:     Included
+Time trend:      Not included
+Newey–West lags: 4 lags
+------------------------------------------------------------------------------
+                                  Statistic      p-value
+------------------------------------------------------------------------------
+ Inverse chi-squared(104)  P      1226.6904       0.0000
+ Inverse normal            Z       -32.9818       0.0000
+ Inverse logit t(114)      L*      -72.4160       0.0000
+ Modified inv. chi-squared Pm       77.8446       0.0000
+------------------------------------------------------------------------------
+ P statistic requires number of panels to be finite.
+ Other statistics are suitable for finite or infinite number of panels.
+------------------------------------------------------------------------------
+inverse chi-squared: 1226.690411271272 , p = 4.4412229242e-191
+inverse normal Z: -32.98177496808698 + , p = 7.4133790599e-239
+(734 real changes made)
+Variable == p_enviro_iss
+-------------------
+
+Fisher-type unit-root test for p_enviro_iss
+Based on Phillips–Perron tests
+-------------------------------------------
+H0: All panels contain unit roots           Number of panels       =     52
+Ha: At least one panel is stationary        Avg. number of periods =  61.04
+
+AR parameter:    Panel-specific             Asymptotics: T -> Infinity
+Panel means:     Included
+Time trend:      Not included
+Newey–West lags: 4 lags
+------------------------------------------------------------------------------
+                                  Statistic      p-value
+------------------------------------------------------------------------------
+ Inverse chi-squared(104)  P       593.6774       0.0000
+ Inverse normal            Z       -23.1288       0.0000
+ Inverse logit t(54)       L*      -52.2477       0.0000
+ Modified inv. chi-squared Pm       33.9530       0.0000
+------------------------------------------------------------------------------
+ P statistic requires number of panels to be finite.
+ Other statistics are suitable for finite or infinite number of panels.
+------------------------------------------------------------------------------
+inverse chi-squared: 593.6773899780586 , p = 1.18577251211e-69
+inverse normal Z: -23.12877381671816 + , p = 1.1889554332e-118
+
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  [PROJECT ROOT DIRECTORY FOLDER]/xtunitroot_results/xtunitroot_pperron.log
+  log type:  text
+ closed on:   5 Jul 2023, 12:00:31
+--------------------------------------------------------------------------------------------------------------------------------------------------------

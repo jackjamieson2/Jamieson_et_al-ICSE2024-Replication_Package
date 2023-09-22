@@ -1,0 +1,2762 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  [PROJECT ROOT DIRECTORY FOLDER]/main_results/pvar_log.log
+  log type:  text
+ opened on:   5 Jul 2023, 11:25:58
+
+. 
+. 
+. * load the data file
+
+. cd "`input_path'"
+[PROJECT ROOT DIRECTORY FOLDER]/data
+
+. use "project-level-data.dta", clear
+
+. 
+. * Set directory to save results, logs, and charts
+
+. cd "`output_path'"
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+. 
+. 
+. 
+. * Define independent variables for analysis
+
+. local indepvars   p_respect_iss p_freedom_iss p_equity_iss p_broad_iss  p_power_iss p_enviro_iss 
+
+. 
+. * Define time groups (contribution length)
+
+. local time_groups "p_in_all" "p_out_a0_1" "p_out_a2_3" "p_out_a4_8" "p_out_a9up"
+
+. 
+. 
+. * Loop through each independent variable
+
+. foreach indepvar in `indepvars' {
+  2. 
+. 
+. * Loop through each time_group
+. foreach time_group in "`time_groups'" {
+  3. 
+. 
+. * Look up how many lags for this item
+. clear
+  4. import excel "`lag_selection_table'", sheet("Sheet1") firstrow
+  5. 
+. keep if time_group == "`time_group'"
+  6. keep if IV == "`indepvar'"
+  7. local n_lags = n_lags[1]
+  8. di "n_lags == `n_lags'."
+  9. 
+. * Load the data file
+. cd "`input_path'"
+ 10. use "project-level-data.dta", clear
+ 11. cd "`output_path'"
+ 12. 
+. * Define unit_id and xtset for time series analysis
+. encode project, gen(unit_id)   
+ 13. isid unit_id month
+ 14. xtset unit_id month
+ 15. * Fill in gaps in the time series
+. tsfill
+ 16. 
+. 
+. * Do the pvar and granger analayis
+. 
+. if `n_lags' == 99 {
+ 17. di "Skipping `indepvar' / `action_verb' / `time_group' because the model did not meet requirements or is not applicable  "
+ 18. }
+ 19. *else if _N == 0 { 
+. *di "Skipping `indepvar' / `action_verb' / `time_group' because this model is not applicable "
+. *}
+. else {
+ 20. di "-------------------"
+ 21. di "indepvar == `indepvar'."
+ 22. di "time_group == `time_group'."
+ 23. di "n_lags == `n_lags'."
+ 24. di "-------------------"
+ 25. 
+. local depvar "`time_group'"
+ 26. 
+. 
+. 
+. pvar `depvar' `indepvar', fod instlags(1/8) gmmstyle vce(robust) lags(`n_lags') 
+ 27. pvarstable, graph
+ 28. graph export "stable-`indepvar'-`action_verb'-`time_group'.pdf", replace
+ 29. pvargranger
+ 30. matlist r(pgstats)
+ 31. 
+. 
+. * Chart 1: Val --> Migration (single chart)
+. pvarirf, oirf mc(200) byoption(yrescale) step(8) porder(`indepvar' `depvar') impulse(`indepvar') response(`depvar') legend(size(large)) subtitle(, siz
+> e(large)) ylabel(, labsize(large)) xlabel(, labsize(large))  xtitle("Months after impulse", size(large))
+ 32. graph export "irf-`indepvar'-`action_verb'-`time_group'-Val-->Mig.pdf", replace
+ 33. *graph save "gph-irf-`indepvar'-`action_verb'-`time_group'-Val-->Mig", replace
+. 
+. * Chart 2: Migration --> Val  (single chart)
+. pvarirf, oirf mc(200) byoption(yrescale) step(8) porder(`depvar' `indepvar')  impulse(`depvar') response(`indepvar') legend(size(large)) subtitle(, si
+> ze(large)) ylabel(, labsize(large)) xlabel(, labsize(large))  xtitle("Months after impulse", size(large))
+ 34. graph export "irf-`indepvar'-`action_verb'-`time_group'-Mig-->Val.pdf", replace
+ 35. 
+. 
+. 
+. 
+. }
+ 36. * end if n_lags !=99
+. 
+. }
+ 37. * end foreach time_group
+. }
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_respect_iss.
+time_group == p_in_all.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0128
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      2191
+                                                   No. of panels   =        45
+                                                   Ave. no. of T   =    48.689
+
+
+-------------------------------------------------------------------------------
+              | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+p_in_all      |
+     p_in_all |
+          L1. |   .0825036   .0373904     2.21   0.027     .0092198    .1557874
+              |
+p_respect_iss |
+          L1. |  -17.63436   2.329763    -7.57   0.000    -22.20061   -13.06811
+--------------+----------------------------------------------------------------
+p_respect_iss |
+     p_in_all |
+          L1. |  -.0013067   .0007797    -1.68   0.094     -.002835    .0002215
+              |
+p_respect_iss |
+          L1. |   .4504876   .0617538     7.29   0.000     .3294524    .5715229
+-------------------------------------------------------------------------------
+Instruments : l(1/8).(p_in_all p_respect_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .5050245          0 |  .5050245 |
+  |  .0279667          0 |  .0279667 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_respect_iss--p_in_all.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_in_all              |                               |
+  |        p_respect_iss |     57.292    1        0.000  |
+  |                  ALL |     57.292    1        0.000  |
+  |----------------------+-------------------------------|
+  |p_respect_iss         |                               |
+  |             p_in_all |      2.808    1        0.094  |
+  |                  ALL |      2.808    1        0.094  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_in_all     |                                 
+p_respect_~s |  57.29223          1   3.76e-14 
+         ALL |  57.29223          1   3.76e-14 
+-------------+---------------------------------
+p_respect_~s |                                 
+    p_in_all |  2.808449          1    .093769 
+         ALL |  2.808449          1    .093769 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_respect_iss--p_in_all-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_respect_iss--p_in_all-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_respect_iss.
+time_group == p_out_a0_1.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0151
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1577
+                                                   No. of panels   =        42
+                                                   Ave. no. of T   =    37.548
+
+
+-------------------------------------------------------------------------------
+              | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+p_out_a0_1    |
+   p_out_a0_1 |
+          L1. |   .0357563   .0527932     0.68   0.498    -.0677164     .139229
+              |
+p_respect_iss |
+          L1. |   35.12768   3.108508    11.30   0.000     29.03512    41.22025
+--------------+----------------------------------------------------------------
+p_respect_iss |
+   p_out_a0_1 |
+          L1. |  -.0011168    .001007    -1.11   0.267    -.0030904    .0008568
+              |
+p_respect_iss |
+          L1. |   .7990059   .0703923    11.35   0.000     .6610396    .9369722
+-------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a0_1 p_respect_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .7435814          0 |  .7435814 |
+  |  .0911808          0 |  .0911808 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_respect_iss--p_out_a0_1.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a0_1            |                               |
+  |        p_respect_iss |    127.701    1        0.000  |
+  |                  ALL |    127.701    1        0.000  |
+  |----------------------+-------------------------------|
+  |p_respect_iss         |                               |
+  |           p_out_a0_1 |      1.230    1        0.267  |
+  |                  ALL |      1.230    1        0.267  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a0_1   |                                 
+p_respect_~s |  127.7012          1   1.30e-29 
+         ALL |  127.7012          1   1.30e-29 
+-------------+---------------------------------
+p_respect_~s |                                 
+  p_out_a0_1 |  1.230088          1   .2673899 
+         ALL |  1.230088          1   .2673899 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_respect_iss--p_out_a0_1-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_respect_iss--p_out_a0_1-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_respect_iss.
+time_group == p_out_a2_3.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0256
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1212
+                                                   No. of panels   =        41
+                                                   Ave. no. of T   =    29.561
+
+
+-------------------------------------------------------------------------------
+              | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+p_out_a2_3    |
+   p_out_a2_3 |
+          L1. |   .1429491   .0577445     2.48   0.013     .0297719    .2561262
+              |
+p_respect_iss |
+          L1. |    34.2512   7.575005     4.52   0.000     19.40446    49.09794
+--------------+----------------------------------------------------------------
+p_respect_iss |
+   p_out_a2_3 |
+          L1. |  -.0001137   .0006911    -0.16   0.869    -.0014682    .0012409
+              |
+p_respect_iss |
+          L1. |   .0066339   .0312868     0.21   0.832     -.054687    .0679548
+-------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a2_3 p_respect_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .1022177          0 |  .1022177 |
+  |  .0473653          0 |  .0473653 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_respect_iss--p_out_a2_3.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a2_3            |                               |
+  |        p_respect_iss |     20.445    1        0.000  |
+  |                  ALL |     20.445    1        0.000  |
+  |----------------------+-------------------------------|
+  |p_respect_iss         |                               |
+  |           p_out_a2_3 |      0.027    1        0.869  |
+  |                  ALL |      0.027    1        0.869  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a2_3   |                                 
+p_respect_~s |  20.44493          1   6.14e-06 
+         ALL |  20.44493          1   6.14e-06 
+-------------+---------------------------------
+p_respect_~s |                                 
+  p_out_a2_3 |  .0270507          1   .8693604 
+         ALL |  .0270507          1   .8693604 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_respect_iss--p_out_a2_3-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_respect_iss--p_out_a2_3-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_respect_iss.
+time_group == p_out_a4_8.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0176
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1387
+                                                   No. of panels   =        42
+                                                   Ave. no. of T   =    33.024
+
+
+-------------------------------------------------------------------------------
+              | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+p_out_a4_8    |
+   p_out_a4_8 |
+          L1. |  -.0044795   .0896453    -0.05   0.960     -.180181    .1712219
+              |
+p_respect_iss |
+          L1. |   38.31285   7.220152     5.31   0.000     24.16161    52.46409
+--------------+----------------------------------------------------------------
+p_respect_iss |
+   p_out_a4_8 |
+          L1. |  -.0008821   .0016911    -0.52   0.602    -.0041966    .0024323
+              |
+p_respect_iss |
+          L1. |   .4729691   .0893266     5.29   0.000     .2978923     .648046
+-------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a4_8 p_respect_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .3865359          0 |  .3865359 |
+  |  .0819537          0 |  .0819537 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_respect_iss--p_out_a4_8.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a4_8            |                               |
+  |        p_respect_iss |     28.158    1        0.000  |
+  |                  ALL |     28.158    1        0.000  |
+  |----------------------+-------------------------------|
+  |p_respect_iss         |                               |
+  |           p_out_a4_8 |      0.272    1        0.602  |
+  |                  ALL |      0.272    1        0.602  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a4_8   |                                 
+p_respect_~s |  28.15764          1   1.12e-07 
+         ALL |  28.15764          1   1.12e-07 
+-------------+---------------------------------
+p_respect_~s |                                 
+  p_out_a4_8 |  .2720998          1   .6019267 
+         ALL |  .2720998          1   .6019267 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_respect_iss--p_out_a4_8-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_respect_iss--p_out_a4_8-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 2.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_respect_iss.
+time_group == p_out_a9up.
+n_lags == 2.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0157
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1865
+                                                   No. of panels   =        43
+                                                   Ave. no. of T   =    43.372
+
+
+-------------------------------------------------------------------------------
+              | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+p_out_a9up    |
+   p_out_a9up |
+          L1. |  -.0257389   .0512222    -0.50   0.615    -.1261327    .0746548
+          L2. |  -.0008547   .0493688    -0.02   0.986    -.0976158    .0959064
+              |
+p_respect_iss |
+          L1. |   4.641101   1.336415     3.47   0.001     2.021777    7.260426
+          L2. |    7.66067   1.620906     4.73   0.000     4.483753    10.83759
+--------------+----------------------------------------------------------------
+p_respect_iss |
+   p_out_a9up |
+          L1. |   .0006151   .0017687     0.35   0.728    -.0028515    .0040817
+          L2. |   .0069588   .0047614     1.46   0.144    -.0023733    .0162908
+              |
+p_respect_iss |
+          L1. |   .2010436   .0543142     3.70   0.000     .0945898    .3074975
+          L2. |   .3533147   .0710611     4.97   0.000     .2140375    .4925919
+-------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a9up p_respect_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .8013723          0 |  .8013723 |
+  | -.5811424          0 |  .5811424 |
+  | -.0224626   -.338543 |  .3392873 |
+  | -.0224626    .338543 |  .3392873 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_respect_iss--p_out_a9up.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a9up            |                               |
+  |        p_respect_iss |     28.319    2        0.000  |
+  |                  ALL |     28.319    2        0.000  |
+  |----------------------+-------------------------------|
+  |p_respect_iss         |                               |
+  |           p_out_a9up |      2.238    2        0.327  |
+  |                  ALL |      2.238    2        0.327  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a9up   |                                 
+p_respect_~s |  28.31896          2   7.09e-07 
+         ALL |  28.31896          2   7.09e-07 
+-------------+---------------------------------
+p_respect_~s |                                 
+  p_out_a9up |  2.238263          2   .3265633 
+         ALL |  2.238263          2   .3265633 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_respect_iss--p_out_a9up-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_respect_iss--p_out_a9up-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_freedom_iss.
+time_group == p_in_all.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0105
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      2191
+                                                   No. of panels   =        45
+                                                   Ave. no. of T   =    48.689
+
+
+-------------------------------------------------------------------------------
+              | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+p_in_all      |
+     p_in_all |
+          L1. |   .0962894   .0367446     2.62   0.009     .0242712    .1683075
+              |
+p_freedom_iss |
+          L1. |  -3.855423    6.01122    -0.64   0.521     -15.6372    7.926351
+--------------+----------------------------------------------------------------
+p_freedom_iss |
+     p_in_all |
+          L1. |   .0008811   .0018838     0.47   0.640    -.0028112    .0045733
+              |
+p_freedom_iss |
+          L1. |  -.0620365   .1001578    -0.62   0.536    -.2583421    .1342692
+-------------------------------------------------------------------------------
+Instruments : l(1/8).(p_in_all p_freedom_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .0706981          0 |  .0706981 |
+  | -.0364452          0 |  .0364452 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_freedom_iss--p_in_all.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_in_all              |                               |
+  |        p_freedom_iss |      0.411    1        0.521  |
+  |                  ALL |      0.411    1        0.521  |
+  |----------------------+-------------------------------|
+  |p_freedom_iss         |                               |
+  |             p_in_all |      0.219    1        0.640  |
+  |                  ALL |      0.219    1        0.640  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_in_all     |                                 
+p_freedom_~s |   .411357          1   .5212815 
+         ALL |   .411357          1   .5212815 
+-------------+---------------------------------
+p_freedom_~s |                                 
+    p_in_all |  .2187396          1   .6400019 
+         ALL |  .2187396          1   .6400019 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_freedom_iss--p_in_all-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_freedom_iss--p_in_all-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_freedom_iss.
+time_group == p_out_a0_1.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0333
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1577
+                                                   No. of panels   =        42
+                                                   Ave. no. of T   =    37.548
+
+
+-------------------------------------------------------------------------------
+              | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+p_out_a0_1    |
+   p_out_a0_1 |
+          L1. |   .0262375   .0720114     0.36   0.716    -.1149022    .1673772
+              |
+p_freedom_iss |
+          L1. |  -31.13269   13.89819    -2.24   0.025    -58.37264   -3.892738
+--------------+----------------------------------------------------------------
+p_freedom_iss |
+   p_out_a0_1 |
+          L1. |  -.0001701   .0012387    -0.14   0.891     -.002598    .0022578
+              |
+p_freedom_iss |
+          L1. |   .1547622   .0844446     1.83   0.067    -.0107462    .3202706
+-------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a0_1 p_freedom_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |   .187584          0 |   .187584 |
+  | -.0065842          0 |  .0065842 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_freedom_iss--p_out_a0_1.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a0_1            |                               |
+  |        p_freedom_iss |      5.018    1        0.025  |
+  |                  ALL |      5.018    1        0.025  |
+  |----------------------+-------------------------------|
+  |p_freedom_iss         |                               |
+  |           p_out_a0_1 |      0.019    1        0.891  |
+  |                  ALL |      0.019    1        0.891  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a0_1   |                                 
+p_freedom_~s |   5.01784          1   .0250874 
+         ALL |   5.01784          1   .0250874 
+-------------+---------------------------------
+p_freedom_~s |                                 
+  p_out_a0_1 |  .0188562          1   .8907797 
+         ALL |  .0188562          1   .8907797 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_freedom_iss--p_out_a0_1-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_freedom_iss--p_out_a0_1-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_freedom_iss.
+time_group == p_out_a2_3.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0346
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1212
+                                                   No. of panels   =        41
+                                                   Ave. no. of T   =    29.561
+
+
+-------------------------------------------------------------------------------
+              | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+p_out_a2_3    |
+   p_out_a2_3 |
+          L1. |   .1229768   .0592781     2.07   0.038     .0067938    .2391598
+              |
+p_freedom_iss |
+          L1. |  -47.92965   7.360385    -6.51   0.000    -62.35574   -33.50356
+--------------+----------------------------------------------------------------
+p_freedom_iss |
+   p_out_a2_3 |
+          L1. |    -.00154   .0006945    -2.22   0.027    -.0029012   -.0001788
+              |
+p_freedom_iss |
+          L1. |   .2714502   .0643734     4.22   0.000     .1452806    .3976198
+-------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a2_3 p_freedom_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .4788527          0 |  .4788527 |
+  | -.0844257          0 |  .0844257 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_freedom_iss--p_out_a2_3.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a2_3            |                               |
+  |        p_freedom_iss |     42.404    1        0.000  |
+  |                  ALL |     42.404    1        0.000  |
+  |----------------------+-------------------------------|
+  |p_freedom_iss         |                               |
+  |           p_out_a2_3 |      4.917    1        0.027  |
+  |                  ALL |      4.917    1        0.027  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a2_3   |                                 
+p_freedom_~s |  42.40406          1   7.42e-11 
+         ALL |  42.40406          1   7.42e-11 
+-------------+---------------------------------
+p_freedom_~s |                                 
+  p_out_a2_3 |  4.916618          1   .0265995 
+         ALL |  4.916618          1   .0265995 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_freedom_iss--p_out_a2_3-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_freedom_iss--p_out_a2_3-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_freedom_iss.
+time_group == p_out_a4_8.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0432
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1387
+                                                   No. of panels   =        42
+                                                   Ave. no. of T   =    33.024
+
+
+-------------------------------------------------------------------------------
+              | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+p_out_a4_8    |
+   p_out_a4_8 |
+          L1. |   .0727549   .0644888     1.13   0.259    -.0536409    .1991507
+              |
+p_freedom_iss |
+          L1. |  -13.88338   11.01623    -1.26   0.208     -35.4748    7.708035
+--------------+----------------------------------------------------------------
+p_freedom_iss |
+   p_out_a4_8 |
+          L1. |   .0016561   .0010985     1.51   0.132    -.0004969    .0038091
+              |
+p_freedom_iss |
+          L1. |   .0165866   .0476347     0.35   0.728    -.0767757    .1099489
+-------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a4_8 p_freedom_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .0446708   .1490079 |  .1555598 |
+  |  .0446708  -.1490079 |  .1555598 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_freedom_iss--p_out_a4_8.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a4_8            |                               |
+  |        p_freedom_iss |      1.588    1        0.208  |
+  |                  ALL |      1.588    1        0.208  |
+  |----------------------+-------------------------------|
+  |p_freedom_iss         |                               |
+  |           p_out_a4_8 |      2.273    1        0.132  |
+  |                  ALL |      2.273    1        0.132  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a4_8   |                                 
+p_freedom_~s |  1.588271          1   .2075734 
+         ALL |  1.588271          1   .2075734 
+-------------+---------------------------------
+p_freedom_~s |                                 
+  p_out_a4_8 |  2.272881          1   .1316549 
+         ALL |  2.272881          1   .1316549 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_freedom_iss--p_out_a4_8-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_freedom_iss--p_out_a4_8-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 2.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_freedom_iss.
+time_group == p_out_a9up.
+n_lags == 2.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0239
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1865
+                                                   No. of panels   =        43
+                                                   Ave. no. of T   =    43.372
+
+
+-------------------------------------------------------------------------------
+              | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+p_out_a9up    |
+   p_out_a9up |
+          L1. |   .0474634     .04303     1.10   0.270    -.0368737    .1318006
+          L2. |  -.0030684   .0365889    -0.08   0.933    -.0747812    .0686445
+              |
+p_freedom_iss |
+          L1. |  -1.088622   .3305939    -3.29   0.001    -1.736574   -.4406695
+          L2. |  -.7442548   .3370724    -2.21   0.027    -1.404905   -.0836049
+--------------+----------------------------------------------------------------
+p_freedom_iss |
+   p_out_a9up |
+          L1. |   .0027231   .0024859     1.10   0.273    -.0021492    .0075953
+          L2. |    .000133   .0045426     0.03   0.977    -.0087704    .0090364
+              |
+p_freedom_iss |
+          L1. |  -.0434489   .0363702    -1.19   0.232    -.1147333    .0278354
+          L2. |   .0260692   .0817998     0.32   0.750    -.1342555     .186394
+-------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a9up p_freedom_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  | -.1969792          0 |  .1969792 |
+  |  .1030918  -.0890786 |  .1362458 |
+  |  .1030918   .0890786 |  .1362458 |
+  | -.0051899          0 |  .0051899 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_freedom_iss--p_out_a9up.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a9up            |                               |
+  |        p_freedom_iss |     16.865    2        0.000  |
+  |                  ALL |     16.865    2        0.000  |
+  |----------------------+-------------------------------|
+  |p_freedom_iss         |                               |
+  |           p_out_a9up |      1.281    2        0.527  |
+  |                  ALL |      1.281    2        0.527  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a9up   |                                 
+p_freedom_~s |  16.86495          2   .0002177 
+         ALL |  16.86495          2   .0002177 
+-------------+---------------------------------
+p_freedom_~s |                                 
+  p_out_a9up |  1.281017          2   .5270243 
+         ALL |  1.281017          2   .5270243 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_freedom_iss--p_out_a9up-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_freedom_iss--p_out_a9up-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_equity_iss.
+time_group == p_in_all.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =      .016
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      2191
+                                                   No. of panels   =        45
+                                                   Ave. no. of T   =    48.689
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_in_all     |
+    p_in_all |
+         L1. |   .0797972   .0380372     2.10   0.036     .0052457    .1543486
+             |
+p_equity_iss |
+         L1. |  -9.310085   22.29076    -0.42   0.676    -52.99918    34.37901
+-------------+----------------------------------------------------------------
+p_equity_iss |
+    p_in_all |
+         L1. |  -.0000112    .000144    -0.08   0.938    -.0002934    .0002711
+             |
+p_equity_iss |
+         L1. |   .0659743   .0994816     0.66   0.507    -.1290061    .2609548
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_in_all p_equity_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .0851991          0 |  .0851991 |
+  |  .0605724          0 |  .0605724 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_equity_iss--p_in_all.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_in_all              |                               |
+  |         p_equity_iss |      0.174    1        0.676  |
+  |                  ALL |      0.174    1        0.676  |
+  |----------------------+-------------------------------|
+  |p_equity_iss          |                               |
+  |             p_in_all |      0.006    1        0.938  |
+  |                  ALL |      0.006    1        0.938  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_in_all     |                                 
+p_equity_iss |  .1744445          1   .6761917 
+         ALL |  .1744445          1   .6761917 
+-------------+---------------------------------
+p_equity_iss |                                 
+    p_in_all |  .0059994          1    .938261 
+         ALL |  .0059994          1    .938261 
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/irf-p_equity_iss--p_in_all-Val-->Mig.pdf
+    saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/irf-p_equity_iss--p_in_all-Mig-->Val.pdf
+    saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_equity_iss.
+time_group == p_out_a0_1.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0277
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1577
+                                                   No. of panels   =        42
+                                                   Ave. no. of T   =    37.548
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a0_1   |
+  p_out_a0_1 |
+         L1. |  -.0310372   .0539378    -0.58   0.565    -.1367533    .0746789
+             |
+p_equity_iss |
+         L1. |  -49.62437   41.61655    -1.19   0.233    -131.1913    31.94256
+-------------+----------------------------------------------------------------
+p_equity_iss |
+  p_out_a0_1 |
+         L1. |   .0000867   .0001859     0.47   0.641    -.0002778    .0004511
+             |
+p_equity_iss |
+         L1. |   .1214942   .0942153     1.29   0.197    -.0631643    .3061528
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a0_1 p_equity_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .0841553          0 |  .0841553 |
+  |  .0063017          0 |  .0063017 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_equity_iss--p_out_a0_1.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a0_1            |                               |
+  |         p_equity_iss |      1.422    1        0.233  |
+  |                  ALL |      1.422    1        0.233  |
+  |----------------------+-------------------------------|
+  |p_equity_iss          |                               |
+  |           p_out_a0_1 |      0.217    1        0.641  |
+  |                  ALL |      0.217    1        0.641  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a0_1   |                                 
+p_equity_iss |  1.421864          1   .2330969 
+         ALL |  1.421864          1   .2330969 
+-------------+---------------------------------
+p_equity_iss |                                 
+  p_out_a0_1 |  .2172811          1   .6411194 
+         ALL |  .2172811          1   .6411194 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_equity_iss--p_out_a0_1-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_equity_iss--p_out_a0_1-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_equity_iss.
+time_group == p_out_a2_3.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0238
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1212
+                                                   No. of panels   =        41
+                                                   Ave. no. of T   =    29.561
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a2_3   |
+  p_out_a2_3 |
+         L1. |   .1124966    .065855     1.71   0.088    -.0165769    .2415701
+             |
+p_equity_iss |
+         L1. |   5.268862   43.06352     0.12   0.903    -79.13409    89.67182
+-------------+----------------------------------------------------------------
+p_equity_iss |
+  p_out_a2_3 |
+         L1. |   .0001108   .0001955     0.57   0.571    -.0002723    .0004939
+             |
+p_equity_iss |
+         L1. |   .0642946   .0758664     0.85   0.397    -.0844008      .21299
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a2_3 p_equity_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .1225244          0 |  .1225244 |
+  |  .0542668          0 |  .0542668 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_equity_iss--p_out_a2_3.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a2_3            |                               |
+  |         p_equity_iss |      0.015    1        0.903  |
+  |                  ALL |      0.015    1        0.903  |
+  |----------------------+-------------------------------|
+  |p_equity_iss          |                               |
+  |           p_out_a2_3 |      0.321    1        0.571  |
+  |                  ALL |      0.321    1        0.571  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a2_3   |                                 
+p_equity_iss |  .0149697          1   .9026211 
+         ALL |  .0149697          1   .9026211 
+-------------+---------------------------------
+p_equity_iss |                                 
+  p_out_a2_3 |  .3214554          1   .5707343 
+         ALL |  .3214554          1   .5707343 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_equity_iss--p_out_a2_3-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_equity_iss--p_out_a2_3-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_equity_iss.
+time_group == p_out_a4_8.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0456
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1387
+                                                   No. of panels   =        42
+                                                   Ave. no. of T   =    33.024
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a4_8   |
+  p_out_a4_8 |
+         L1. |   .0490852    .079668     0.62   0.538    -.1070613    .2052317
+             |
+p_equity_iss |
+         L1. |   53.61284   27.64376     1.94   0.052    -.5679251    107.7936
+-------------+----------------------------------------------------------------
+p_equity_iss |
+  p_out_a4_8 |
+         L1. |   .0006292   .0006095     1.03   0.302    -.0005655    .0018238
+             |
+p_equity_iss |
+         L1. |  -.0521203   .1130941    -0.46   0.645    -.2737807    .1695402
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a4_8 p_equity_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  | -.1920217          0 |  .1920217 |
+  |  .1889865          0 |  .1889865 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_equity_iss--p_out_a4_8.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a4_8            |                               |
+  |         p_equity_iss |      3.761    1        0.052  |
+  |                  ALL |      3.761    1        0.052  |
+  |----------------------+-------------------------------|
+  |p_equity_iss          |                               |
+  |           p_out_a4_8 |      1.066    1        0.302  |
+  |                  ALL |      1.066    1        0.302  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a4_8   |                                 
+p_equity_iss |  3.761348          1   .0524503 
+         ALL |  3.761348          1   .0524503 
+-------------+---------------------------------
+p_equity_iss |                                 
+  p_out_a4_8 |  1.065518          1   .3019601 
+         ALL |  1.065518          1   .3019601 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_equity_iss--p_out_a4_8-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_equity_iss--p_out_a4_8-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 2.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_equity_iss.
+time_group == p_out_a9up.
+n_lags == 2.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0205
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1865
+                                                   No. of panels   =        43
+                                                   Ave. no. of T   =    43.372
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a9up   |
+  p_out_a9up |
+         L1. |    .039991   .0499684     0.80   0.424    -.0579453    .1379272
+         L2. |  -.0595242   .0463134    -1.29   0.199    -.1502968    .0312485
+             |
+p_equity_iss |
+         L1. |  -4.162278   5.206498    -0.80   0.424    -14.36683     6.04227
+         L2. |  -9.032858   3.474594    -2.60   0.009    -15.84294   -2.222778
+-------------+----------------------------------------------------------------
+p_equity_iss |
+  p_out_a9up |
+         L1. |   .0000207   .0005196     0.04   0.968    -.0009978    .0010392
+         L2. |  -.0009299   .0004268    -2.18   0.029    -.0017664   -.0000934
+             |
+p_equity_iss |
+         L1. |   .2095317   .0714533     2.93   0.003     .0694859    .3495776
+         L2. |   .0663509   .0515886     1.29   0.198    -.0347608    .1674627
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a9up p_equity_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |   .449125          0 |   .449125 |
+  |  .0293511   -.324941 |   .326264 |
+  |  .0293511    .324941 |   .326264 |
+  | -.2583046          0 |  .2583046 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_equity_iss--p_out_a9up.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a9up            |                               |
+  |         p_equity_iss |      7.739    2        0.021  |
+  |                  ALL |      7.739    2        0.021  |
+  |----------------------+-------------------------------|
+  |p_equity_iss          |                               |
+  |           p_out_a9up |      5.246    2        0.073  |
+  |                  ALL |      5.246    2        0.073  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a9up   |                                 
+p_equity_iss |  7.738528          2   .0208737 
+         ALL |  7.738528          2   .0208737 
+-------------+---------------------------------
+p_equity_iss |                                 
+  p_out_a9up |  5.246296          2    .072574 
+         ALL |  5.246296          2    .072574 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_equity_iss--p_out_a9up-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_equity_iss--p_out_a9up-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 2.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_broad_iss.
+time_group == p_in_all.
+n_lags == 2.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =      .015
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      2070
+                                                   No. of panels   =        45
+                                                   Ave. no. of T   =    46.000
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_in_all     |
+    p_in_all |
+         L1. |   .1343862   .0383172     3.51   0.000     .0592858    .2094866
+         L2. |    .110853   .0330012     3.36   0.001     .0461717    .1755342
+             |
+ p_broad_iss |
+         L1. |    .366586   .8301948     0.44   0.659    -1.260566    1.993738
+         L2. |   3.466607   6.913114     0.50   0.616    -10.08285    17.01606
+-------------+----------------------------------------------------------------
+p_broad_iss  |
+    p_in_all |
+         L1. |  -.0013048   .0011243    -1.16   0.246    -.0035085    .0008988
+         L2. |  -.0018939    .000662    -2.86   0.004    -.0031913   -.0005965
+             |
+ p_broad_iss |
+         L1. |  -.0061702   .0154776    -0.40   0.690    -.0365057    .0241653
+         L2. |   .0112732   .0480559     0.23   0.815    -.0829146    .1054611
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_in_all p_broad_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .3087393   .1018158 |  .3250944 |
+  |  .3087393  -.1018158 |  .3250944 |
+  | -.2446313  -.1187484 |  .2719295 |
+  | -.2446313   .1187484 |  .2719295 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_broad_iss--p_in_all.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_in_all              |                               |
+  |          p_broad_iss |      0.254    2        0.881  |
+  |                  ALL |      0.254    2        0.881  |
+  |----------------------+-------------------------------|
+  |p_broad_iss           |                               |
+  |             p_in_all |     10.090    2        0.006  |
+  |                  ALL |     10.090    2        0.006  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_in_all     |                                 
+ p_broad_iss |   .254355          2   .8805774 
+         ALL |   .254355          2   .8805774 
+-------------+---------------------------------
+p_broad_iss  |                                 
+    p_in_all |   10.0902          2   .0064408 
+         ALL |   10.0902          2   .0064408 
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/irf-p_broad_iss--p_in_all-Val-->Mig.pdf
+    saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/irf-p_broad_iss--p_in_all-Mig-->Val.pdf
+    saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_broad_iss.
+time_group == p_out_a0_1.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =       .02
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1577
+                                                   No. of panels   =        42
+                                                   Ave. no. of T   =    37.548
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a0_1   |
+  p_out_a0_1 |
+         L1. |   .0273658   .0656137     0.42   0.677    -.1012348    .1559664
+             |
+ p_broad_iss |
+         L1. |   83.93494   5.862148    14.32   0.000     72.44534    95.42454
+-------------+----------------------------------------------------------------
+p_broad_iss  |
+  p_out_a0_1 |
+         L1. |  -.0012496   .0006219    -2.01   0.045    -.0024685   -.0000307
+             |
+ p_broad_iss |
+         L1. |   .4190584   .0313817    13.35   0.000     .3575514    .4805653
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a0_1 p_broad_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .2232121  -.2579313 |  .3411044 |
+  |  .2232121   .2579313 |  .3411044 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_broad_iss--p_out_a0_1.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a0_1            |                               |
+  |          p_broad_iss |    205.009    1        0.000  |
+  |                  ALL |    205.009    1        0.000  |
+  |----------------------+-------------------------------|
+  |p_broad_iss           |                               |
+  |           p_out_a0_1 |      4.037    1        0.045  |
+  |                  ALL |      4.037    1        0.045  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a0_1   |                                 
+ p_broad_iss |  205.0086          1   1.69e-46 
+         ALL |  205.0086          1   1.69e-46 
+-------------+---------------------------------
+p_broad_iss  |                                 
+  p_out_a0_1 |  4.037085          1   .0445106 
+         ALL |  4.037085          1   .0445106 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_broad_iss--p_out_a0_1-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_broad_iss--p_out_a0_1-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 2.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_broad_iss.
+time_group == p_out_a2_3.
+n_lags == 2.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =      .041
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1042
+                                                   No. of panels   =        33
+                                                   Ave. no. of T   =    31.576
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a2_3   |
+  p_out_a2_3 |
+         L1. |   .1802366   .0568614     3.17   0.002     .0687902     .291683
+         L2. |   .1018634   .0509727     2.00   0.046     .0019587    .2017682
+             |
+ p_broad_iss |
+         L1. |   4.698022   5.506038     0.85   0.394    -6.093614    15.48966
+         L2. |  -.7141574   3.485811    -0.20   0.838    -7.546222    6.117907
+-------------+----------------------------------------------------------------
+p_broad_iss  |
+  p_out_a2_3 |
+         L1. |  -.0001133   .0008866    -0.13   0.898     -.001851    .0016245
+         L2. |   .0000432   .0007085     0.06   0.951    -.0013454    .0014318
+             |
+ p_broad_iss |
+         L1. |   .0277622   .0344164     0.81   0.420    -.0396927    .0952172
+         L2. |   .0100657    .024005     0.42   0.675    -.0369832    .0571146
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a2_3 p_broad_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .4217022          0 |  .4217022 |
+  | -.2378526          0 |  .2378526 |
+  |  .1153988          0 |  .1153988 |
+  | -.0912496          0 |  .0912496 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_broad_iss--p_out_a2_3.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a2_3            |                               |
+  |          p_broad_iss |      0.867    2        0.648  |
+  |                  ALL |      0.867    2        0.648  |
+  |----------------------+-------------------------------|
+  |p_broad_iss           |                               |
+  |           p_out_a2_3 |      0.024    2        0.988  |
+  |                  ALL |      0.024    2        0.988  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a2_3   |                                 
+ p_broad_iss |  .8672146          2   .6481667 
+         ALL |  .8672146          2   .6481667 
+-------------+---------------------------------
+p_broad_iss  |                                 
+  p_out_a2_3 |    .02411          2   .9880173 
+         ALL |    .02411          2   .9880173 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_broad_iss--p_out_a2_3-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_broad_iss--p_out_a2_3-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_broad_iss.
+time_group == p_out_a4_8.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =      .055
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1387
+                                                   No. of panels   =        42
+                                                   Ave. no. of T   =    33.024
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a4_8   |
+  p_out_a4_8 |
+         L1. |    .177036   .0579732     3.05   0.002     .0634106    .2906614
+             |
+ p_broad_iss |
+         L1. |   26.18732    12.2377     2.14   0.032     2.201866    50.17278
+-------------+----------------------------------------------------------------
+p_broad_iss  |
+  p_out_a4_8 |
+         L1. |   .0009988   .0007872     1.27   0.204     -.000544    .0025416
+             |
+ p_broad_iss |
+         L1. |   .0744404   .0337875     2.20   0.028     .0082181    .1406626
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a4_8 p_broad_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .2954075          0 |  .2954075 |
+  | -.0439311          0 |  .0439311 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_broad_iss--p_out_a4_8.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a4_8            |                               |
+  |          p_broad_iss |      4.579    1        0.032  |
+  |                  ALL |      4.579    1        0.032  |
+  |----------------------+-------------------------------|
+  |p_broad_iss           |                               |
+  |           p_out_a4_8 |      1.610    1        0.204  |
+  |                  ALL |      1.610    1        0.204  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a4_8   |                                 
+ p_broad_iss |  4.579124          1   .0323638 
+         ALL |  4.579124          1   .0323638 
+-------------+---------------------------------
+p_broad_iss  |                                 
+  p_out_a4_8 |  1.609998          1   .2044921 
+         ALL |  1.609998          1   .2044921 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_broad_iss--p_out_a4_8-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_broad_iss--p_out_a4_8-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 99.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+Skipping p_broad_iss /  / p_out_a9up because the model did not meet requirements or is not applicable  
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 2.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_power_iss.
+time_group == p_in_all.
+n_lags == 2.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0173
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      2070
+                                                   No. of panels   =        45
+                                                   Ave. no. of T   =    46.000
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_in_all     |
+    p_in_all |
+         L1. |   .1280368   .0364921     3.51   0.000     .0565136      .19956
+         L2. |   .1123219    .033849     3.32   0.001     .0459791    .1786646
+             |
+ p_power_iss |
+         L1. |    5.59239   2.271534     2.46   0.014     1.140264    10.04452
+         L2. |   1.214071   4.228399     0.29   0.774    -7.073439     9.50158
+-------------+----------------------------------------------------------------
+p_power_iss  |
+    p_in_all |
+         L1. |  -.0001448    .000846    -0.17   0.864    -.0018028    .0015133
+         L2. |  -.0012471    .000836    -1.49   0.136    -.0028858    .0003915
+             |
+ p_power_iss |
+         L1. |   .1602669   .0656523     2.44   0.015     .0315908     .288943
+         L2. |   .0014962   .1007785     0.01   0.988     -.196026    .1990183
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_in_all p_power_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |   .313854   .0771345 |  .3231935 |
+  |   .313854  -.0771345 |  .3231935 |
+  | -.2823717          0 |  .2823717 |
+  | -.0570325          0 |  .0570325 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_power_iss--p_in_all.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_in_all              |                               |
+  |          p_power_iss |      8.923    2        0.012  |
+  |                  ALL |      8.923    2        0.012  |
+  |----------------------+-------------------------------|
+  |p_power_iss           |                               |
+  |             p_in_all |      2.537    2        0.281  |
+  |                  ALL |      2.537    2        0.281  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_in_all     |                                 
+ p_power_iss |  8.922916          2   .0115455 
+         ALL |  8.922916          2   .0115455 
+-------------+---------------------------------
+p_power_iss  |                                 
+    p_in_all |  2.536646          2   .2813029 
+         ALL |  2.536646          2   .2813029 
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/irf-p_power_iss--p_in_all-Val-->Mig.pdf
+    saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/irf-p_power_iss--p_in_all-Mig-->Val.pdf
+    saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_power_iss.
+time_group == p_out_a0_1.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0293
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1577
+                                                   No. of panels   =        42
+                                                   Ave. no. of T   =    37.548
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a0_1   |
+  p_out_a0_1 |
+         L1. |  -.0153039   .0612052    -0.25   0.803     -.135264    .1046561
+             |
+ p_power_iss |
+         L1. |   -136.554   3.048206   -44.80   0.000    -142.5284   -130.5797
+-------------+----------------------------------------------------------------
+p_power_iss  |
+  p_out_a0_1 |
+         L1. |  -.0002435   .0001977    -1.23   0.218     -.000631     .000144
+             |
+ p_power_iss |
+         L1. |   .9555187   .0256537    37.25   0.000     .9052383    1.005799
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a0_1 p_power_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .9886433          0 |  .9886433 |
+  | -.0484285          0 |  .0484285 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_power_iss--p_out_a0_1.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a0_1            |                               |
+  |          p_power_iss |   2006.876    1        0.000  |
+  |                  ALL |   2006.876    1        0.000  |
+  |----------------------+-------------------------------|
+  |p_power_iss           |                               |
+  |           p_out_a0_1 |      1.517    1        0.218  |
+  |                  ALL |      1.517    1        0.218  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a0_1   |                                 
+ p_power_iss |  2006.876          1          0 
+         ALL |  2006.876          1          0 
+-------------+---------------------------------
+p_power_iss  |                                 
+  p_out_a0_1 |  1.517277          1    .218032 
+         ALL |  1.517277          1    .218032 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_power_iss--p_out_a0_1-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_power_iss--p_out_a0_1-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_power_iss.
+time_group == p_out_a2_3.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0319
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1212
+                                                   No. of panels   =        41
+                                                   Ave. no. of T   =    29.561
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a2_3   |
+  p_out_a2_3 |
+         L1. |   .1384318   .0501362     2.76   0.006     .0401668    .2366969
+             |
+ p_power_iss |
+         L1. |  -83.73873   1.581565   -52.95   0.000    -86.83855   -80.63892
+-------------+----------------------------------------------------------------
+p_power_iss  |
+  p_out_a2_3 |
+         L1. |   .0000767   .0003082     0.25   0.803    -.0005274    .0006808
+             |
+ p_power_iss |
+         L1. |   .5752486    .012329    46.66   0.000     .5510843     .599413
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a2_3 p_power_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .5600091          0 |  .5600091 |
+  |  .1536714          0 |  .1536714 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_power_iss--p_out_a2_3.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a2_3            |                               |
+  |          p_power_iss |   2803.359    1        0.000  |
+  |                  ALL |   2803.359    1        0.000  |
+  |----------------------+-------------------------------|
+  |p_power_iss           |                               |
+  |           p_out_a2_3 |      0.062    1        0.803  |
+  |                  ALL |      0.062    1        0.803  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a2_3   |                                 
+ p_power_iss |  2803.359          1          0 
+         ALL |  2803.359          1          0 
+-------------+---------------------------------
+p_power_iss  |                                 
+  p_out_a2_3 |  .0619601          1   .8034243 
+         ALL |  .0619601          1   .8034243 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_power_iss--p_out_a2_3-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_power_iss--p_out_a2_3-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_power_iss.
+time_group == p_out_a4_8.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0629
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1387
+                                                   No. of panels   =        42
+                                                   Ave. no. of T   =    33.024
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a4_8   |
+  p_out_a4_8 |
+         L1. |   .1629684   .0589547     2.76   0.006     .0474194    .2785175
+             |
+ p_power_iss |
+         L1. |  -16.10738   1.341449   -12.01   0.000    -18.73657   -13.47819
+-------------+----------------------------------------------------------------
+p_power_iss  |
+  p_out_a4_8 |
+         L1. |  -.0000378    .000865    -0.04   0.965    -.0017331    .0016576
+             |
+ p_power_iss |
+         L1. |  -.1316973   .0155809    -8.45   0.000    -.1622353   -.1011593
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a4_8 p_power_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .1650189          0 |  .1650189 |
+  | -.1337478          0 |  .1337478 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_power_iss--p_out_a4_8.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a4_8            |                               |
+  |          p_power_iss |    144.179    1        0.000  |
+  |                  ALL |    144.179    1        0.000  |
+  |----------------------+-------------------------------|
+  |p_power_iss           |                               |
+  |           p_out_a4_8 |      0.002    1        0.965  |
+  |                  ALL |      0.002    1        0.965  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a4_8   |                                 
+ p_power_iss |  144.1787          1   3.25e-33 
+         ALL |  144.1787          1   3.25e-33 
+-------------+---------------------------------
+p_power_iss  |                                 
+  p_out_a4_8 |  .0019069          1   .9651689 
+         ALL |  .0019069          1   .9651689 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_power_iss--p_out_a4_8-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_power_iss--p_out_a4_8-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 2.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_power_iss.
+time_group == p_out_a9up.
+n_lags == 2.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0281
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1865
+                                                   No. of panels   =        43
+                                                   Ave. no. of T   =    43.372
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a9up   |
+  p_out_a9up |
+         L1. |   .0534265     .03944     1.35   0.176    -.0238745    .1307274
+         L2. |  -.0140929   .0353653    -0.40   0.690    -.0834076    .0552218
+             |
+ p_power_iss |
+         L1. |  -.4223624    .199072    -2.12   0.034    -.8125363   -.0321884
+         L2. |  -.2116844   .1213747    -1.74   0.081    -.4495745    .0262056
+-------------+----------------------------------------------------------------
+p_power_iss  |
+  p_out_a9up |
+         L1. |   .0003754   .0005328     0.70   0.481    -.0006688    .0014196
+         L2. |  -.0002992   .0005002    -0.60   0.550    -.0012795    .0006812
+             |
+ p_power_iss |
+         L1. |   .0051211   .0089247     0.57   0.566     -.012371    .0226131
+         L2. |   -.001427   .0094876    -0.15   0.880    -.0200223    .0171683
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a9up p_power_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .0208732   .1313676 |  .1330155 |
+  |  .0208732  -.1313676 |  .1330155 |
+  |  .0585306          0 |  .0585306 |
+  | -.0417295          0 |  .0417295 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_power_iss--p_out_a9up.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a9up            |                               |
+  |          p_power_iss |      7.129    2        0.028  |
+  |                  ALL |      7.129    2        0.028  |
+  |----------------------+-------------------------------|
+  |p_power_iss           |                               |
+  |           p_out_a9up |      0.994    2        0.608  |
+  |                  ALL |      0.994    2        0.608  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a9up   |                                 
+ p_power_iss |  7.128685          2   .0283156 
+         ALL |  7.128685          2   .0283156 
+-------------+---------------------------------
+p_power_iss  |                                 
+  p_out_a9up |  .9942306          2   .6082828 
+         ALL |  .9942306          2   .6082828 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_power_iss--p_out_a9up-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_power_iss--p_out_a9up-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 2.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_enviro_iss.
+time_group == p_in_all.
+n_lags == 2.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0208
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      2070
+                                                   No. of panels   =        45
+                                                   Ave. no. of T   =    46.000
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_in_all     |
+    p_in_all |
+         L1. |   .1351928   .0376304     3.59   0.000     .0614387     .208947
+         L2. |   .1135265   .0340875     3.33   0.001     .0467162    .1803368
+             |
+p_enviro_iss |
+         L1. |   139.2211   42.30296     3.29   0.001      56.3088    222.1334
+         L2. |   86.41407   63.21947     1.37   0.172    -37.49381    210.3219
+-------------+----------------------------------------------------------------
+p_enviro_iss |
+    p_in_all |
+         L1. |   .0001091   .0000602     1.81   0.070    -8.80e-06     .000227
+         L2. |   .0003817   .0001058     3.61   0.000     .0001743    .0005891
+             |
+p_enviro_iss |
+         L1. |   .5573909   .1693277     3.29   0.001     .2255146    .8892671
+         L2. |   .0847481   .0615991     1.38   0.169    -.0359839    .2054801
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_in_all p_enviro_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .8705782          0 |  .8705782 |
+  | -.3494904          0 |  .3494904 |
+  |   .085748  -.2634988 |  .2770998 |
+  |   .085748   .2634988 |  .2770998 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_enviro_iss--p_in_all.pdf saved
+    as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_in_all              |                               |
+  |         p_enviro_iss |     15.375    2        0.000  |
+  |                  ALL |     15.375    2        0.000  |
+  |----------------------+-------------------------------|
+  |p_enviro_iss          |                               |
+  |             p_in_all |     13.210    2        0.001  |
+  |                  ALL |     13.210    2        0.001  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_in_all     |                                 
+p_enviro_iss |   15.3755          2   .0004584 
+         ALL |   15.3755          2   .0004584 
+-------------+---------------------------------
+p_enviro_iss |                                 
+    p_in_all |  13.20994          2   .0013536 
+         ALL |  13.20994          2   .0013536 
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/irf-p_enviro_iss--p_in_all-Val-->Mig.pdf
+    saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/irf-p_enviro_iss--p_in_all-Mig-->Val.pdf
+    saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 2.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_enviro_iss.
+time_group == p_out_a0_1.
+n_lags == 2.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0362
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1402
+                                                   No. of panels   =        40
+                                                   Ave. no. of T   =    35.050
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a0_1   |
+  p_out_a0_1 |
+         L1. |   .1215201   .0522859     2.32   0.020     .0190416    .2239985
+         L2. |   .0593169   .0470662     1.26   0.208    -.0329312     .151565
+             |
+p_enviro_iss |
+         L1. |     223.76   112.9414     1.98   0.048     2.398875    445.1211
+         L2. |   -93.5959   48.49351    -1.93   0.054    -188.6414    1.449641
+-------------+----------------------------------------------------------------
+p_enviro_iss |
+  p_out_a0_1 |
+         L1. |   .0003123   .0000785     3.98   0.000     .0001584    .0004661
+         L2. |   .0002704   .0000511     5.29   0.000     .0001703    .0003706
+             |
+p_enviro_iss |
+         L1. |  -.2018267   .1050174    -1.92   0.055    -.4076571    .0040037
+         L2. |   .3634232    .195754     1.86   0.063    -.0202475    .7470939
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a0_1 p_enviro_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  | -.6893293          0 |  .6893293 |
+  |  .5708688          0 |  .5708688 |
+  |  .3647175          0 |  .3647175 |
+  | -.3265636          0 |  .3265636 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_enviro_iss--p_out_a0_1.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a0_1            |                               |
+  |         p_enviro_iss |      7.081    2        0.029  |
+  |                  ALL |      7.081    2        0.029  |
+  |----------------------+-------------------------------|
+  |p_enviro_iss          |                               |
+  |           p_out_a0_1 |     32.089    2        0.000  |
+  |                  ALL |     32.089    2        0.000  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a0_1   |                                 
+p_enviro_iss |  7.081187          2   .0289961 
+         ALL |  7.081187          2   .0289961 
+-------------+---------------------------------
+p_enviro_iss |                                 
+  p_out_a0_1 |  32.08892          2   1.08e-07 
+         ALL |  32.08892          2   1.08e-07 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_enviro_iss--p_out_a0_1-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_enviro_iss--p_out_a0_1-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 1.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_enviro_iss.
+time_group == p_out_a2_3.
+n_lags == 1.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0489
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1212
+                                                   No. of panels   =        41
+                                                   Ave. no. of T   =    29.561
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a2_3   |
+  p_out_a2_3 |
+         L1. |   .1813521   .0555153     3.27   0.001     .0725442    .2901601
+             |
+p_enviro_iss |
+         L1. |  -719.2184    101.614    -7.08   0.000    -918.3782   -520.0586
+-------------+----------------------------------------------------------------
+p_enviro_iss |
+  p_out_a2_3 |
+         L1. |  -6.34e-06   .0000629    -0.10   0.920    -.0001297     .000117
+             |
+p_enviro_iss |
+         L1. |   .7434104   .1057863     7.03   0.000      .536073    .9507478
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a2_3 p_enviro_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |   .751404          0 |   .751404 |
+  |  .1733585          0 |  .1733585 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_enviro_iss--p_out_a2_3.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a2_3            |                               |
+  |         p_enviro_iss |     50.097    1        0.000  |
+  |                  ALL |     50.097    1        0.000  |
+  |----------------------+-------------------------------|
+  |p_enviro_iss          |                               |
+  |           p_out_a2_3 |      0.010    1        0.920  |
+  |                  ALL |      0.010    1        0.920  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a2_3   |                                 
+p_enviro_iss |  50.09729          1   1.46e-12 
+         ALL |  50.09729          1   1.46e-12 
+-------------+---------------------------------
+p_enviro_iss |                                 
+  p_out_a2_3 |  .0101343          1    .919813 
+         ALL |  .0101343          1    .919813 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_enviro_iss--p_out_a2_3-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_enviro_iss--p_out_a2_3-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 2.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+-------------------
+indepvar == p_enviro_iss.
+time_group == p_out_a4_8.
+n_lags == 2.
+-------------------
+
+Panel vector autoregresssion
+
+
+
+GMM Estimation
+
+Final GMM Criterion Q(b) =     .0197
+Initial weight matrix: Identity
+GMM weight matrix:     Robust
+                                                   No. of obs      =      1265
+                                                   No. of panels   =        36
+                                                   Ave. no. of T   =    35.139
+
+
+------------------------------------------------------------------------------
+             | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+p_out_a4_8   |
+  p_out_a4_8 |
+         L1. |   .0173349   .0987672     0.18   0.861    -.1762453    .2109151
+         L2. |   .0145904    .089324     0.16   0.870    -.1604814    .1896622
+             |
+p_enviro_iss |
+         L1. |   1151.697   420.9296     2.74   0.006     326.6906    1976.704
+         L2. |    -8.5517   46.69975    -0.18   0.855    -100.0815    82.97813
+-------------+----------------------------------------------------------------
+p_enviro_iss |
+  p_out_a4_8 |
+         L1. |   .0000729   .0000487     1.50   0.134    -.0000226    .0001683
+         L2. |   .0000287   .0000383     0.75   0.453    -.0000463    .0001038
+             |
+p_enviro_iss |
+         L1. |   .4816454   .1745767     2.76   0.006     .1394813    .8238094
+         L2. |    .003616   .0567274     0.06   0.949    -.1075676    .1147996
+------------------------------------------------------------------------------
+Instruments : l(1/8).(p_out_a4_8 p_enviro_iss) 
+
+   Eigenvalue stability condition
+
+  +----------------------------------+
+  |      Eigenvalue      |           |
+  |   Real     Imaginary |  Modulus  |
+  |----------------------+-----------|
+  |  .6880434          0 |  .6880434 |
+  | -.1001625   .1688322 |   .196308 |
+  | -.1001625  -.1688322 |   .196308 |
+  |   .011262          0 |   .011262 |
+  +----------------------------------+
+
+   All the eigenvalues lie inside the unit circle.
+   pVAR satisfies stability condition.
+file [PROJECT ROOT DIRECTORY FOLDER]/main_results/stable-p_enviro_iss--p_out_a4_8.pdf
+    saved as PDF format
+
+  panel VAR-Granger causality Wald test
+    Ho: Excluded variable does not Granger-cause Equation variable
+    Ha: Excluded variable Granger-causes Equation variable
+
+  +------------------------------------------------------+
+  |  Equation \ Excluded |    chi2     df   Prob > chi2  |
+  |----------------------+-------------------------------|
+  |p_out_a4_8            |                               |
+  |         p_enviro_iss |      7.634    2        0.022  |
+  |                  ALL |      7.634    2        0.022  |
+  |----------------------+-------------------------------|
+  |p_enviro_iss          |                               |
+  |           p_out_a4_8 |      2.668    2        0.263  |
+  |                  ALL |      2.668    2        0.263  |
+  +------------------------------------------------------+
+
+             |      chi2         df  Prob > ~2 
+-------------+---------------------------------
+p_out_a4_8   |                                 
+p_enviro_iss |   7.63384          2   .0219954 
+         ALL |   7.63384          2   .0219954 
+-------------+---------------------------------
+p_enviro_iss |                                 
+  p_out_a4_8 |  2.668209          2   .2633939 
+         ALL |  2.668209          2   .2633939 
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_enviro_iss--p_out_a4_8-Val-->Mig.pdf saved as PDF format
+file [PROJECT ROOT DIRECTORY FOLDER]/irf-p_enviro_iss--p_out_a4_8-Mig-->Val.pdf saved as PDF format
+(3 vars, 30 obs)
+(24 observations deleted)
+(5 observations deleted)
+n_lags == 99.
+[PROJECT ROOT DIRECTORY FOLDER]/data
+[PROJECT ROOT DIRECTORY FOLDER]/main_results
+
+Panel variable: unit_id (unbalanced)
+ Time variable: month, 2016m1 to 2021m12, but with gaps
+         Delta: 1 month
+Skipping p_enviro_iss /  / p_out_a9up because the model did not meet requirements or is not applicable  
+
+. * end foreach indepvar
+
+. 
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  [PROJECT ROOT DIRECTORY FOLDER]/main_results/pvar_log.log
+  log type:  text
+ closed on:   5 Jul 2023, 11:34:07
+--------------------------------------------------------------------------------------------------------------------------------------------------------

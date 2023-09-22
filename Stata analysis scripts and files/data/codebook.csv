@@ -1,0 +1,14 @@
+﻿Column name,Category,Type,Description
+project,Observation ID,String,A string indicating the name of the project (usually the name of the organization that maintains the project's repositories)
+month,Observation ID,Monthly timestamp,A timestamp indicating the month. (Saved as a string in the .csv version of the data)
+p_freedom_iss,value-related issues,Double,The proportion of issues related to FREEDOM
+p_respect_iss,value-related issues,Double,The proportion of issues related to FREEDOM
+p_equity_iss,value-related issues,Double,The proportion of issues related to FREEDOM
+p_broad_iss,value-related issues,Double,The proportion of issues related to FREEDOM
+p_power_iss,value-related issues,Double,The proportion of issues related to FREEDOM
+p_enviro_iss,value-related issues,Double,The proportion of issues related to FREEDOM
+p_in_all,Incoming turnover,Double,The proportion of contributors who were new this month
+p_out_a0_1,Outgoing turnover,Double,The proportion of FIRST MONTH contributors who left after this month.
+p_out_a2_3,Outgoing turnover,Double,The proportion of 2-3 MONTH contributors who left after this month.
+p_out_a4_8,Outgoing turnover,Double,The proportion of 4-8 MONTH contributors who left after this month.
+p_out_a9up,Outgoing turnover,Double,The proportion of 9+ MONTH contributors who left after this month.
